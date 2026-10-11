@@ -155,7 +155,7 @@ or with pip directly:
 
 ```yaml
 - repo: https://github.com/conflint/conflint
-  rev: v0.1.1
+  rev: v0.1.2
   hooks:
     - id: conflint
 ```
