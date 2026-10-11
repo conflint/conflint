@@ -1,0 +1,49 @@
+site_name: conflint
+site_description: Code-aware configuration linting. Find every env var, config key and secret your app needs - and the drift across .env, CI, Docker, Kubernetes and Terraform before it breaks prod.
+site_url: https://conflint.readthedocs.io
+repo_url: https://github.com/confl/conflint
+edit_uri: blob/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.top
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Usage: usage.md
+  - Rules: rules.md
+  - Configuration: configuration.md
+  - Reporters: reporters.md
+  - Plugins: plugins.md
+  - API reference: reference.md
+
+markdown_extensions:
+  - admonition
+  - tables
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: true

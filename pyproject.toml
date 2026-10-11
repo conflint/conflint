@@ -108,6 +108,7 @@ include = [
 line-length = 100
 target-version = "py39"
 src = ["src", "tests"]
+extend-exclude = ["src/conflint/_version.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
