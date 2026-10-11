@@ -31,11 +31,8 @@ jobs:
     name: Publish to PyPI
     needs: build
     runs-on: ubuntu-latest
-    # Skipped until PyPI trusted publishing is configured for the "conflint"
-    # project AND the repo variable PUBLISH_TO_PYPI is set to "true".
-    # To enable: add a trusted publisher on PyPI for this repo + workflow +
-    # environment, then `gh variable set PUBLISH_TO_PYPI --body true`.
-    if: ${{ vars.PUBLISH_TO_PYPI == 'true' }}
+    # Requires a PyPI trusted publisher (project "conflint") for this repo +
+    # workflow "release.yml" + no environment. See docs/CONTRIBUTING for setup.
     steps:
       - uses: actions/download-artifact@v4
         with:
