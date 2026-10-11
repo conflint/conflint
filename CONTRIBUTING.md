@@ -69,7 +69,9 @@ pytest tests/test_sources.py -q
 ## Pre-commit
 
 A `.pre-commit-config.yaml` is provided (ruff + mypy). Using it is optional —
-CI enforces the same checks. To install:
+CI enforces the same checks. The mirror `rev`s in that file are pinned
+manually; bump them in the same PR where you bump `ruff`/`mypy` in the dev
+extras. To install:
 
 ```console
 pip install pre-commit
