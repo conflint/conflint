@@ -13,8 +13,9 @@ where they live in the document.
 
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
 from pathlib import Path
-from typing import Any, Iterator, List, Mapping
+from typing import Any
 
 from conflint.models import Entry, Location
 from conflint.sources._yaml import load_documents
@@ -43,12 +44,10 @@ class KubernetesSource(ConfigSource):
         parts = [p.lower() for p in path.parts]
         if ".github" in parts and "workflows" in parts:
             return False
-        if self._norm_name(path) in _COMPOSE_NAMES:
-            return False
-        return True
+        return self._norm_name(path) not in _COMPOSE_NAMES
 
-    def parse(self, path: Path, text: str) -> List[Entry]:
-        entries: List[Entry] = []
+    def parse(self, path: Path, text: str) -> list[Entry]:
+        entries: list[Entry] = []
         for document in load_documents(text):
             if not isinstance(document, Mapping):
                 continue
@@ -62,10 +61,8 @@ class KubernetesSource(ConfigSource):
     def _looks_like_k8s(document: Mapping[str, Any]) -> bool:
         return "kind" in document and ("apiVersion" in document or "metadata" in document)
 
-    def _parse_workload(
-        self, path: Path, text: str, document: Mapping[str, Any]
-    ) -> List[Entry]:
-        entries: List[Entry] = []
+    def _parse_workload(self, path: Path, text: str, document: Mapping[str, Any]) -> list[Entry]:
+        entries: list[Entry] = []
         kind = str(document.get("kind", ""))
         for container in self._iter_containers(document):
             for env in container.get("env", []) or []:
@@ -76,7 +73,7 @@ class KubernetesSource(ConfigSource):
                     continue
                 if "value" in env:
                     value = env.get("value")
-                    notes = (f"k8s:{kind}",)
+                    notes: tuple[str, ...] = (f"k8s:{kind}",)
                     value_str = None if value is None else str(value)
                 else:
                     value_str = None
@@ -96,11 +93,11 @@ class KubernetesSource(ConfigSource):
 
     def _parse_configmap_secret(
         self, path: Path, text: str, document: Mapping[str, Any]
-    ) -> List[Entry]:
+    ) -> list[Entry]:
         kind = str(document.get("kind", ""))
         if kind not in {"ConfigMap", "Secret"}:
             return []
-        entries: List[Entry] = []
+        entries: list[Entry] = []
         for field in ("data", "stringData", "binaryData"):
             mapping = document.get(field)
             if not isinstance(mapping, Mapping):

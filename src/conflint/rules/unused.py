@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List
-
 from conflint.config import Settings
 from conflint.models import Config, Finding, Severity
 from conflint.rules.base import Rule
@@ -18,9 +16,9 @@ class UnusedRule(Rule):
     description = "A real configuration value is never read by the scanned code."
     fixable = False
 
-    def check(self, config: Config, settings: Settings) -> List[Finding]:
+    def check(self, config: Config, settings: Settings) -> list[Finding]:
         used = config.used_names()
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         # Only complain about names that a *real* source provides; an unused key
         # in an example file is covered by the drift/undocumented rules.
         seen = set()

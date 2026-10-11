@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 from conflint.models import Language, Location, Usage
 from conflint.scanners.base import Scanner
@@ -40,8 +39,8 @@ class JavaScriptScanner(Scanner):
     language = Language.JAVASCRIPT
     extensions = (".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts")
 
-    def scan(self, path: Path, text: str) -> List[Usage]:
-        usages: List[Usage] = []
+    def scan(self, path: Path, text: str) -> list[Usage]:
+        usages: list[Usage] = []
 
         for match in _RE_DOTTED.finditer(text):
             name = match.group(1)
@@ -62,9 +61,7 @@ class JavaScriptScanner(Scanner):
 
         return usages
 
-    def _usage(
-        self, path: Path, text: str, name: str, end: int, via: str, start: int
-    ) -> Usage:
+    def _usage(self, path: Path, text: str, name: str, end: int, via: str, start: int) -> Usage:
         default, has_default = self._inline_default(text, end)
         return Usage(
             name=name,
@@ -76,7 +73,7 @@ class JavaScriptScanner(Scanner):
             default=default,
         )
 
-    def _inline_default(self, text: str, end: int) -> Tuple[Optional[str], bool]:
+    def _inline_default(self, text: str, end: int) -> tuple[str | None, bool]:
         window = text[end : end + 40]
         match = _RE_FALLBACK.match(window)
         if not match:
@@ -88,8 +85,8 @@ class JavaScriptScanner(Scanner):
             return raw[1:-1], True
         return raw, True
 
-    def _scan_destructure(self, path: Path, text: str, body: str, start: int) -> List[Usage]:
-        usages: List[Usage] = []
+    def _scan_destructure(self, path: Path, text: str, body: str, start: int) -> list[Usage]:
+        usages: list[Usage] = []
         for raw_item in body.split(","):
             item = raw_item.strip()
             if not item:
@@ -101,7 +98,7 @@ class JavaScriptScanner(Scanner):
             if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", name):
                 continue
             has_default = "=" in item
-            default: Optional[str] = None
+            default: str | None = None
             if has_default:
                 default = default_part.strip().strip("\"'") or "<dynamic>"
             usages.append(

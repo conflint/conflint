@@ -41,6 +41,7 @@ dev = [
     "pytest-cov>=4.1",
     "mypy>=1.8",
     "ruff>=0.4",
+    "types-PyYAML>=6.0",
     "build>=1.2",
     "twine>=5.0",
 ]
@@ -113,7 +114,7 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
 ignore = ["E501"]
 
 [tool.mypy]
-python_version = "3.9"
+python_version = "3.10"
 strict = true
 warn_unused_ignores = true
 warn_redundant_casts = true
@@ -125,6 +126,7 @@ minversion = "7.0"
 addopts = "-ra -q --strict-markers"
 testpaths = ["tests"]
 filterwarnings = ["error"]
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 source = ["conflint"]

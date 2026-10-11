@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterator, List
+from collections.abc import Iterator
+from typing import Any
 
 import yaml
 
 __all__ = ["load_all", "load_documents"]
 
 
-def load_all(text: str) -> List[Any]:
+def load_all(text: str) -> list[Any]:
     """Parse every YAML document in ``text``; return ``[]`` on any error."""
 
     try:

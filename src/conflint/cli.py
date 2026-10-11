@@ -11,8 +11,8 @@ The command name is :program:`confl` (the PyPI package is ``conflint``)::
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
 
 import click
 
@@ -20,8 +20,16 @@ from conflint.__about__ import __version__
 from conflint.config import Settings, load_settings
 from conflint.engine import Analyzer
 from conflint.exceptions import ConflintError, ExitCode
+from conflint.models import Report
 from conflint.registry import get_rules
-from conflint.reporters import GithubReporter, JsonReporter, JunitReporter, SarifReporter, TextReporter
+from conflint.reporters import (
+    GithubReporter,
+    JsonReporter,
+    JunitReporter,
+    Reporter,
+    SarifReporter,
+    TextReporter,
+)
 from conflint.sync import build_example, default_example_file
 from conflint.utils import read_text
 
@@ -29,7 +37,7 @@ logger = logging.getLogger("conflint.cli")
 
 __all__ = ["main"]
 
-_REPORTERS = {
+_REPORTERS: dict[str, type[Reporter]] = {
     "text": TextReporter,
     "json": JsonReporter,
     "sarif": SarifReporter,
@@ -63,16 +71,16 @@ def main() -> None:
 @click.option("--github", "as_github", is_flag=True)
 @click.option("--output", type=click.Path(dir_okay=False), help="Write the report to a file.")
 def check(
-    paths: Tuple[str, ...],
-    config_path: Optional[str],
-    report_flags: Tuple[str, ...],
-    fail_level: Optional[str],
+    paths: tuple[str, ...],
+    config_path: str | None,
+    report_flags: tuple[str, ...],
+    fail_level: str | None,
     fix: bool,
     no_color: bool,
     as_json: bool,
     as_sarif: bool,
     as_github: bool,
-    output: Optional[str],
+    output: str | None,
 ) -> int:
     """Lint the project and report configuration drift."""
 
@@ -85,13 +93,11 @@ def check(
         )
     except ConflintError as exc:
         click.echo(f"confl: {exc}", err=True)
-        return ExitCode.USAGE
-
+        raise SystemExit(ExitCode.USAGE) from None
     reporter_classes = _select_reporters(settings, report_flags, as_json, as_sarif, as_github)
     if not reporter_classes:
         click.echo("confl: no reporters selected", err=True)
-        return ExitCode.USAGE
-
+        raise SystemExit(ExitCode.USAGE)
     try:
         analyzer = Analyzer(settings)
         if fix:
@@ -99,13 +105,12 @@ def check(
         report = analyzer.run()
     except ConflintError as exc:
         click.echo(f"confl: {exc}", err=True)
-        return ExitCode.INTERNAL
-
-    _emit(report_classes, report, settings, output)
+        raise SystemExit(ExitCode.INTERNAL) from None
+    _emit(reporter_classes, report, settings, output)
 
     if report.has_findings_at_or_above(settings.fail_level):
-        return ExitCode.FINDINGS
-    return ExitCode.OK
+        raise SystemExit(ExitCode.FINDINGS)
+    raise SystemExit(ExitCode.OK)
 
 
 # --------------------------------------------------------------------------
@@ -115,7 +120,7 @@ def check(
 @click.option("--config", "config_path", type=click.Path(dir_okay=False))
 @click.option("--dry-run", is_flag=True, help="Print the generated file without writing.")
 @click.option("--output", type=click.Path(dir_okay=False), help="Example file to write/update.")
-def sync(config_path: Optional[str], dry_run: bool, output: Optional[str]) -> int:
+def sync(config_path: str | None, dry_run: bool, output: str | None) -> int:
     """Regenerate the .env.example from code + config sources."""
 
     root = Path.cwd()
@@ -124,22 +129,20 @@ def sync(config_path: Optional[str], dry_run: bool, output: Optional[str]) -> in
         model = Analyzer(settings).collect()
     except ConflintError as exc:
         click.echo(f"confl: {exc}", err=True)
-        return ExitCode.USAGE
-
+        raise SystemExit(ExitCode.USAGE) from None
     content = build_example(model, settings)
     if dry_run:
         click.echo(content, nl=False)
-        return ExitCode.OK
-
+        raise SystemExit(ExitCode.OK)
     target = Path(output) if output else default_example_file(settings.root, settings)
     changed = target.is_file() and read_text(target) == content
     try:
         target.write_text(content, encoding="utf-8")
     except OSError as exc:  # pragma: no cover - filesystem dependent
         click.echo(f"confl: cannot write {target}: {exc}", err=True)
-        return ExitCode.INTERNAL
+        raise SystemExit(ExitCode.INTERNAL) from None
     click.echo(("unchanged: " if changed else "updated: ") + str(target))
-    return ExitCode.OK
+    raise SystemExit(ExitCode.OK)
 
 
 # --------------------------------------------------------------------------
@@ -148,7 +151,7 @@ def sync(config_path: Optional[str], dry_run: bool, output: Optional[str]) -> in
 @main.command("explain")
 @click.argument("name")
 @click.option("--config", "config_path", type=click.Path(dir_okay=False))
-def explain(name: str, config_path: Optional[str]) -> int:
+def explain(name: str, config_path: str | None) -> int:
     """Show where a configuration value is used and defined."""
 
     root = Path.cwd()
@@ -158,17 +161,19 @@ def explain(name: str, config_path: Optional[str]) -> int:
         model = analyzer.collect()
     except ConflintError as exc:
         click.echo(f"confl: {exc}", err=True)
-        return ExitCode.USAGE
-
+        raise SystemExit(ExitCode.USAGE) from None
     usages = model.usages_by_name().get(name, [])
     entries = model.entries_by_name().get(name, [])
-    if not usages and not entries:
-        click.echo(f"confl: '{name}' is not used or defined anywhere.", err=True)
-        return ExitCode.FINDINGS
+    from rich.console import Console
 
-    click.echo(f"[bold]{name}[/bold]")
+    console = Console()
+    if not usages and not entries:
+        console.print(f"[red]'{name}' is not used or defined anywhere.[/red]")
+        raise SystemExit(ExitCode.FINDINGS)
+
+    console.print(f"[bold]{name}[/bold]")
     if usages:
-        click.echo(f"  read at {len(usages)} place(s):")
+        console.print(f"  read at [bold]{len(usages)}[/bold] place(s):")
         seen = set()
         for usage in usages:
             line = str(usage.location.relative_to(model.root))
@@ -180,17 +185,17 @@ def explain(name: str, config_path: Optional[str]) -> int:
                 detail += f", default={usage.default!r})"
             else:
                 detail += ")"
-            click.echo(detail)
+            console.print(detail)
     if entries:
-        click.echo(f"  defined in {len(entries)} place(s):")
+        console.print(f"  defined in [bold]{len(entries)}[/bold] place(s):")
         for entry in entries:
-            click.echo(
+            console.print(
                 f"  - {entry.location.relative_to(model.root)}  "
                 f"({entry.source}, value={entry.value!r}, example={entry.is_example})"
             )
     else:
-        click.echo("  not defined in any configuration source")
-    return ExitCode.OK
+        console.print("  not defined in any configuration source")
+    raise SystemExit(ExitCode.OK)
 
 
 # --------------------------------------------------------------------------
@@ -202,7 +207,7 @@ def rules(as_json: bool) -> int:
     """List every rule with its default severity."""
 
     items = []
-    for rule_id, rule in get_rules().items():
+    for _rule_id, rule in get_rules().items():
         items.append(
             {
                 "id": rule.id,
@@ -216,14 +221,13 @@ def rules(as_json: bool) -> int:
         import json as _json
 
         click.echo(_json.dumps(items, indent=2))
-        return ExitCode.OK
-
+        raise SystemExit(ExitCode.OK)
     click.echo(f"{'Rule':<8} {'Severity':<9} {'Name':<16} Description")
     for item in items:
         click.echo(
             f"{item['id']:<8} {item['severity']:<9} {item['name']:<16} {item['description']}"
         )
-    return ExitCode.OK
+    raise SystemExit(ExitCode.OK)
 
 
 @main.command("init")
@@ -234,12 +238,10 @@ def init(force: bool) -> int:
     target = Path.cwd() / "conflint.toml"
     if target.exists() and not force:
         click.echo(f"confl: {target} already exists (use --force to overwrite).", err=True)
-        return ExitCode.USAGE
-    _TEMPLATE = """\
+        raise SystemExit(ExitCode.USAGE)
+    template = """\
 # conflint configuration - https://github.com/confl/conflint
-# Uncomment and adjust:
-
-# [tool.conflint]
+# Keys are top-level here (in pyproject.toml, nest them under [tool.conflint]).
 
 # fail-level = "error"              # error | warning | info
 # require-example = true            # enforce a populated .env.example
@@ -254,12 +256,12 @@ def init(force: bool) -> int:
 # scanners = ["python", "javascript"]
 """
     try:
-        target.write_text(_TEMPLATE, encoding="utf-8")
+        target.write_text(template, encoding="utf-8")
     except OSError as exc:  # pragma: no cover
         click.echo(f"confl: cannot write {target}: {exc}", err=True)
-        return ExitCode.INTERNAL
+        raise SystemExit(ExitCode.INTERNAL) from None
     click.echo(f"created {target}")
-    return ExitCode.OK
+    raise SystemExit(ExitCode.OK)
 
 
 @main.command()
@@ -267,7 +269,7 @@ def version() -> int:
     """Print the installed version."""
 
     click.echo(f"confl {__version__}")
-    return ExitCode.OK
+    raise SystemExit(ExitCode.OK)
 
 
 # --------------------------------------------------------------------------
@@ -284,19 +286,26 @@ def _resolve_root(paths: Sequence[str]) -> Path:
 
 def _build_overrides(
     paths: Sequence[str],
-    fail_level: Optional[str],
+    fail_level: str | None,
     no_color: bool,
-) -> Dict:
-    overrides: Dict = {}
+) -> dict[str, object]:
+    overrides: dict[str, object] = {}
     if paths:
-        includes = []
+        root = _resolve_root(paths)
+        includes: list[str] = []
         for raw in paths:
             path = Path(raw)
             if path.is_dir():
-                includes.append(str(path) + "/**/*")
-            else:
-                includes.append(raw.replace("\\", "/"))
-        overrides["include"] = includes
+                # Discovery is already rooted at the path; keep the default
+                # include glob ("**/*") rather than emitting an absolute glob.
+                continue
+            try:
+                rel = path.resolve().relative_to(root.resolve())
+            except (ValueError, OSError):
+                rel = path
+            includes.append(str(rel).replace("\\", "/"))
+        if includes:
+            overrides["include"] = tuple(includes)
     if fail_level:
         overrides["fail-level"] = fail_level
     if no_color:
@@ -310,8 +319,8 @@ def _select_reporters(
     as_json: bool,
     as_sarif: bool,
     as_github: bool,
-) -> List:
-    chosen: List[str] = []
+) -> list[type[Reporter]]:
+    chosen: list[str] = []
     if as_json:
         chosen.append("json")
     if as_sarif:
@@ -326,7 +335,12 @@ def _select_reporters(
     return [_REPORTERS[name] for name in unique if name in _REPORTERS]
 
 
-def _emit(reporter_classes, report, settings: Settings, output: Optional[str]) -> None:
+def _emit(
+    reporter_classes: Sequence[type[Reporter]],
+    report: Report,
+    settings: Settings,
+    output: str | None,
+) -> None:
     rendered = [(cls.name, cls().render(report, settings)) for cls in reporter_classes]
     if output is not None and len(rendered) == 1:
         path = Path(output)

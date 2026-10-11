@@ -7,15 +7,15 @@ so the CLI can present a clean message instead of a traceback.
 from __future__ import annotations
 
 __all__ = [
-    "ConflintError",
     "ConfigError",
+    "ConflintError",
     "DiscoveryError",
+    "ExitCode",
+    "PluginError",
+    "ReporterError",
+    "RuleError",
     "ScanError",
     "SourceError",
-    "RuleError",
-    "ReporterError",
-    "PluginError",
-    "ExitCode",
 ]
 
 

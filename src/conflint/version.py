@@ -18,7 +18,7 @@ def _resolve_version() -> str:
         from conflint._version import __version__ as generated
 
         return generated
-    except Exception:  # noqa: BLE001 - any failure means "not built"
+    except Exception:
         pass
 
     try:

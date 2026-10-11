@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List
-
 from conflint.config import Settings
 from conflint.models import Config, Finding, Severity
 from conflint.rules.base import Rule
@@ -18,10 +16,10 @@ class DriftRule(Rule):
     description = "A value is documented in an example file but provided by no real source."
     fixable = False
 
-    def check(self, config: Config, settings: Settings) -> List[Finding]:
+    def check(self, config: Config, settings: Settings) -> list[Finding]:
         example_names = {e.name for e in config.entries if e.is_example}
         real_names = {e.name for e in config.entries if not e.is_example}
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         for name, usages in config.usages_by_name().items():
             if settings.is_name_ignored(name):
                 continue

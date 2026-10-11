@@ -8,7 +8,7 @@ pure: they never touch the filesystem and never mutate the model.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from conflint.config import Settings
 from conflint.models import Config, Finding, Location, Severity
@@ -31,7 +31,7 @@ class Rule(ABC):
     fixable: bool = False
 
     @abstractmethod
-    def check(self, config: Config, settings: Settings) -> List[Finding]:
+    def check(self, config: Config, settings: Settings) -> list[Finding]:
         """Return findings for ``config``."""
 
     # -- helper ----------------------------------------------------------
@@ -39,12 +39,12 @@ class Rule(ABC):
         self,
         message: str,
         *,
-        key: Optional[str] = None,
-        location: Optional[Location] = None,
-        help: Optional[str] = None,
-        severity: Optional[Severity] = None,
-        fixable: Optional[bool] = None,
-        data: Optional[Dict[str, Any]] = None,
+        key: str | None = None,
+        location: Location | None = None,
+        help: str | None = None,
+        severity: Severity | None = None,
+        fixable: bool | None = None,
+        data: dict[str, Any] | None = None,
     ) -> Finding:
         return Finding(
             rule_id=self.id,

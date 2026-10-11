@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List
-
 from conflint.config import Settings
 from conflint.models import Config, Finding, Severity
 from conflint.rules.base import Rule
@@ -19,9 +17,9 @@ class TypoRule(Rule):
     description = "An undefined value closely matches a defined one (possible typo)."
     fixable = False
 
-    def check(self, config: Config, settings: Settings) -> List[Finding]:
+    def check(self, config: Config, settings: Settings) -> list[Finding]:
         defined = {entry.name for entry in config.entries}
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         for name, usages in config.usages_by_name().items():
             if name in defined or settings.is_name_ignored(name):
                 continue

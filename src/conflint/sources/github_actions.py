@@ -8,8 +8,9 @@ dead?".
 
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
 from pathlib import Path
-from typing import Any, Iterator, List, Mapping
+from typing import Any
 
 from conflint.models import Entry, Location
 from conflint.sources._yaml import load_documents
@@ -36,8 +37,8 @@ class GitHubActionsSource(ConfigSource):
         parts = [p.lower() for p in path.parts]
         return ".github" in parts and "workflows" in parts
 
-    def parse(self, path: Path, text: str) -> List[Entry]:
-        entries: List[Entry] = []
+    def parse(self, path: Path, text: str) -> list[Entry]:
+        entries: list[Entry] = []
         for document in load_documents(text):
             for env_map in self._iter_env_maps(document):
                 for key, value in env_map.items():

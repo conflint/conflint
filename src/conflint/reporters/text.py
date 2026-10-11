@@ -9,7 +9,7 @@ from __future__ import annotations
 import io
 from collections import OrderedDict
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, cast
 
 from rich.console import Console
 from rich.table import Table
@@ -35,7 +35,7 @@ class TextReporter(Reporter):
     def render(self, report: Report, settings: Settings) -> str:
         console = Console(
             file=io.StringIO(),
-            color_system=_color_system(settings.color),
+            color_system=cast(Any, _color_system(settings.color)),
             width=120,
             highlight=False,
         )
@@ -66,11 +66,13 @@ class TextReporter(Reporter):
         )
         console.print("")
         console.print(summary)
-        return console.file.getvalue()
+        return cast(io.StringIO, console.file).getvalue()
 
     @staticmethod
-    def _group_by_file(findings: List[Finding], root: Optional[Path]) -> "OrderedDict[str, List[Finding]]":
-        groups: "OrderedDict[str, List[Finding]]" = OrderedDict()
+    def _group_by_file(
+        findings: list[Finding], root: Path | None
+    ) -> OrderedDict[str, list[Finding]]:
+        groups: OrderedDict[str, list[Finding]] = OrderedDict()
         for finding in findings:
             if finding.location is not None:
                 path = str(finding.location.relative_to(root) if root else finding.location.path)
@@ -79,7 +81,7 @@ class TextReporter(Reporter):
             groups.setdefault(path, []).append(finding)
         return groups
 
-    def _print_groups(self, console: Console, groups: Dict[str, List[Finding]]) -> None:
+    def _print_groups(self, console: Console, groups: dict[str, list[Finding]]) -> None:
         for path, findings in groups.items():
             console.print(f"[bold underline]{path}[/bold underline]")
             for finding in findings:
@@ -94,7 +96,7 @@ class TextReporter(Reporter):
             console.print("")
 
 
-def _color_system(configured: Optional[bool]) -> Optional[str]:
+def _color_system(configured: bool | None) -> str | None:
     if configured is False:
         return None
     return "auto"

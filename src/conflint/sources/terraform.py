@@ -15,8 +15,9 @@ from __future__ import annotations
 
 import json
 import re
+from collections.abc import Iterator, Mapping
 from pathlib import Path
-from typing import Any, List, Mapping
+from typing import Any
 
 from conflint.models import Entry, Location
 from conflint.sources.base import ConfigSource, find_line
@@ -26,7 +27,7 @@ __all__ = ["TerraformSource"]
 
 _RE_VARIABLE = re.compile(r'\bvariable\s+"([A-Za-z_][A-Za-z0-9_]*)"\s*\{')
 _RE_DEFAULT = re.compile(r'\bdefault\s*=\s*("(?:[^"\\]|\\.)*"|[A-Za-z0-9_.\-]+)')
-_RE_ASSIGN = re.compile(r'^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+?)\s*$')
+_RE_ASSIGN = re.compile(r"^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+?)\s*$", re.MULTILINE)
 _RE_ENV_BLOCK = re.compile(r"\benvironment\s*=\s*\{")
 
 
@@ -50,7 +51,7 @@ class TerraformSource(ConfigSource):
             return True
         return name.endswith(".tfvars")
 
-    def parse(self, path: Path, text: str) -> List[Entry]:
+    def parse(self, path: Path, text: str) -> list[Entry]:
         name = self._norm_name(path)
         if name.endswith(".tfvars.json"):
             return self._parse_json_tfvars(path, text)
@@ -59,8 +60,8 @@ class TerraformSource(ConfigSource):
         return self._parse_tf(path, text)
 
     # -- .tf -------------------------------------------------------------
-    def _parse_tf(self, path: Path, text: str) -> List[Entry]:
-        entries: List[Entry] = []
+    def _parse_tf(self, path: Path, text: str) -> list[Entry]:
+        entries: list[Entry] = []
         for match in _RE_VARIABLE.finditer(text):
             var_name = match.group(1)
             block = self._block_body(text, match.end())
@@ -89,7 +90,7 @@ class TerraformSource(ConfigSource):
             )
         return entries
 
-    def _iter_env_blocks(self, text: str):
+    def _iter_env_blocks(self, text: str) -> Iterator[tuple[str, str, int]]:
         for match in _RE_ENV_BLOCK.finditer(text):
             body = self._block_body(text, match.end())
             for assign in _RE_ASSIGN.finditer(body):
@@ -98,8 +99,8 @@ class TerraformSource(ConfigSource):
                 yield key, value, match.start()
 
     # -- .tfvars ---------------------------------------------------------
-    def _parse_tfvars(self, path: Path, text: str) -> List[Entry]:
-        entries: List[Entry] = []
+    def _parse_tfvars(self, path: Path, text: str) -> list[Entry]:
+        entries: list[Entry] = []
         for lineno, raw in enumerate(text.splitlines(), start=1):
             if raw.lstrip().startswith(("#", "//")):
                 continue
@@ -119,14 +120,14 @@ class TerraformSource(ConfigSource):
             )
         return entries
 
-    def _parse_json_tfvars(self, path: Path, text: str) -> List[Entry]:
+    def _parse_json_tfvars(self, path: Path, text: str) -> list[Entry]:
         try:
             data = json.loads(text)
         except json.JSONDecodeError:
             return []
         if not isinstance(data, Mapping):
             return []
-        entries: List[Entry] = []
+        entries: list[Entry] = []
         for key, value in data.items():
             entries.append(
                 Entry(

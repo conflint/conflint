@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from typing import List
-
 from conflint.config import Settings
-from conflint.models import Config, Finding, Severity
+from conflint.models import Config, Finding, Location, Severity
 from conflint.rules.base import Rule
 
 __all__ = ["UndocumentedRule"]
@@ -18,7 +16,7 @@ class UndocumentedRule(Rule):
     description = "A value is used or provided but not documented in any example file."
     fixable = False
 
-    def check(self, config: Config, settings: Settings) -> List[Finding]:
+    def check(self, config: Config, settings: Settings) -> list[Finding]:
         if not settings.require_example:
             return []
         example_names = {e.name for e in config.entries if e.is_example}
@@ -26,10 +24,10 @@ class UndocumentedRule(Rule):
             # No example template exists at all; nothing to be "missing from".
             return []
 
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         # Names that exist for real (used by code or provided by a real source).
         candidates = set(config.used_names()) | config.real_defined_names()
-        location_by_name = {}
+        location_by_name: dict[str, Location] = {}
         for entry in config.entries:
             location_by_name.setdefault(entry.name, entry.location)
         for usage in config.usages:

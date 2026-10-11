@@ -14,23 +14,25 @@ ecosystem.  Unknown keys are rejected loudly so typos never pass silently.
 
 from __future__ import annotations
 
+import sys
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
+from typing import Any, cast
 
 from conflint.exceptions import ConfigError
 from conflint.models import Severity
 
-try:  # Python 3.11+
-    import tomllib as _toml
-except ModuleNotFoundError:  # pragma: no cover - exercised on 3.9/3.10
-    import tomli as _toml  # type: ignore[no-redef]
+if sys.version_info >= (3, 11):
+    import tomllib as _toml  # type: ignore[import-not-found]
+else:  # pragma: no cover - exercised on 3.9/3.10
+    import tomli as _toml
 
-__all__ = ["Settings", "load_settings", "DEFAULT_EXCLUDES", "DEFAULT_INCLUDES"]
+__all__ = ["DEFAULT_EXCLUDES", "DEFAULT_INCLUDES", "Settings", "load_settings"]
 
-DEFAULT_INCLUDES: Tuple[str, ...] = ("**/*",)
+DEFAULT_INCLUDES: tuple[str, ...] = ("**/*",)
 
-DEFAULT_EXCLUDES: Tuple[str, ...] = (
+DEFAULT_EXCLUDES: tuple[str, ...] = (
     ".git/**",
     ".hg/**",
     ".svn/**",
@@ -52,7 +54,7 @@ DEFAULT_EXCLUDES: Tuple[str, ...] = (
 )
 
 # Files that represent "example/template" configuration rather than real values.
-DEFAULT_EXAMPLE_FILES: Tuple[str, ...] = (
+DEFAULT_EXAMPLE_FILES: tuple[str, ...] = (
     ".env.example",
     ".env.sample",
     ".env.template",
@@ -85,21 +87,21 @@ class Settings:
     """Effective, validated configuration for a run."""
 
     root: Path
-    include: Tuple[str, ...] = DEFAULT_INCLUDES
-    exclude: Tuple[str, ...] = DEFAULT_EXCLUDES
-    scanners: Tuple[str, ...] = ()  # empty => all
-    sources: Tuple[str, ...] = ()  # empty => all
-    enable: Dict[str, Severity] = field(default_factory=dict)
-    disable: Tuple[str, ...] = ()
-    ignore_names: Tuple[str, ...] = ()
-    ignore_paths: Tuple[str, ...] = ()
+    include: tuple[str, ...] = DEFAULT_INCLUDES
+    exclude: tuple[str, ...] = DEFAULT_EXCLUDES
+    scanners: tuple[str, ...] = ()  # empty => all
+    sources: tuple[str, ...] = ()  # empty => all
+    enable: dict[str, Severity] = field(default_factory=dict)
+    disable: tuple[str, ...] = ()
+    ignore_names: tuple[str, ...] = ()
+    ignore_paths: tuple[str, ...] = ()
     fail_level: Severity = Severity.ERROR
-    example_files: Tuple[str, ...] = DEFAULT_EXAMPLE_FILES
-    color: Optional[bool] = None
+    example_files: tuple[str, ...] = DEFAULT_EXAMPLE_FILES
+    color: bool | None = None
     entropy_threshold: float = 3.5
     require_example: bool = True
-    reporters: Tuple[str, ...] = ("text",)
-    origin_files: Tuple[Path, ...] = ()
+    reporters: tuple[str, ...] = ("text",)
+    origin_files: tuple[Path, ...] = ()
 
     def is_name_ignored(self, name: str) -> bool:
         import fnmatch
@@ -111,11 +113,10 @@ class Settings:
 
         text = str(path).replace("\\", "/")
         return any(
-            fnmatch(text, pattern) or fnmatch(path.name, pattern)
-            for pattern in self.ignore_paths
+            fnmatch(text, pattern) or fnmatch(path.name, pattern) for pattern in self.ignore_paths
         )
 
-    def severity_for(self, rule_id: str) -> Optional[Severity]:
+    def severity_for(self, rule_id: str) -> Severity | None:
         """Explicit severity override for ``rule_id`` (``None`` if not overridden).
 
         Disabled rules are reported separately by :meth:`is_disabled`; the
@@ -131,7 +132,7 @@ class Settings:
         return rule_id in self.disable
 
 
-def _as_str_tuple(value: Any, key: str) -> Tuple[str, ...]:
+def _as_str_tuple(value: Any, key: str) -> tuple[str, ...]:
     if value is None:
         return ()
     if isinstance(value, str):
@@ -155,7 +156,7 @@ def _coerce_severity(value: Any, key: str) -> Severity:
 def _read_toml(path: Path) -> Mapping[str, Any]:
     try:
         with path.open("rb") as handle:
-            return _toml.load(handle)
+            return cast(Mapping[str, Any], _toml.load(handle))
     except FileNotFoundError as exc:
         raise ConfigError(f"config file not found: {path}") from exc
     except OSError as exc:  # pragma: no cover - filesystem dependent
@@ -164,7 +165,7 @@ def _read_toml(path: Path) -> Mapping[str, Any]:
         raise ConfigError(f"invalid TOML in {path}: {exc}") from exc
 
 
-def _extract_table(data: Mapping[str, Any], path: Path, *, nested: bool) -> Dict[str, Any]:
+def _extract_table(data: Mapping[str, Any], path: Path, *, nested: bool) -> dict[str, Any]:
     if nested:
         table = data.get("tool", {}).get("conflint")
         if table is None:
@@ -178,9 +179,7 @@ def _extract_table(data: Mapping[str, Any], path: Path, *, nested: bool) -> Dict
 def _apply(settings: Settings, table: Mapping[str, Any], path: Path) -> None:
     unknown = set(table) - _ALLOWED_KEYS
     if unknown:
-        raise ConfigError(
-            f"unknown configuration key(s) in {path}: {', '.join(sorted(unknown))}"
-        )
+        raise ConfigError(f"unknown configuration key(s) in {path}: {', '.join(sorted(unknown))}")
 
     if "include" in table:
         settings.include = _as_str_tuple(table["include"], "include")
@@ -237,8 +236,8 @@ def _apply(settings: Settings, table: Mapping[str, Any], path: Path) -> None:
 def load_settings(
     root: Path,
     *,
-    config_path: Optional[Path] = None,
-    overrides: Optional[Mapping[str, Any]] = None,
+    config_path: Path | None = None,
+    overrides: Mapping[str, Any] | None = None,
 ) -> Settings:
     """Build the effective :class:`Settings` for ``root``."""
 
@@ -253,7 +252,9 @@ def load_settings(
 
     for candidate in (root / "conflint.toml", root / ".conflint.toml"):
         if candidate.is_file():
-            _apply(settings, _extract_table(_read_toml(candidate), candidate, nested=False), candidate)
+            _apply(
+                settings, _extract_table(_read_toml(candidate), candidate, nested=False), candidate
+            )
 
     if config_path is not None:
         path = Path(config_path)

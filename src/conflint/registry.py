@@ -14,20 +14,24 @@ warning rather than taking down the whole run.
 from __future__ import annotations
 
 import logging
-from typing import Dict, Iterable, List, Sequence, Type
+from collections.abc import Iterable, Sequence
+from typing import Any
 
 from conflint.exceptions import PluginError
+from conflint.rules import Rule
+from conflint.scanners import Scanner
+from conflint.sources import ConfigSource
 
 logger = logging.getLogger("conflint.registry")
 
 __all__ = [
-    "get_scanners",
-    "get_sources",
-    "get_rules",
-    "iter_entry_points",
+    "RULE_GROUP",
     "SCANNER_GROUP",
     "SOURCE_GROUP",
-    "RULE_GROUP",
+    "get_rules",
+    "get_scanners",
+    "get_sources",
+    "iter_entry_points",
 ]
 
 SCANNER_GROUP = "conflint.scanners"
@@ -35,7 +39,7 @@ SOURCE_GROUP = "conflint.sources"
 RULE_GROUP = "conflint.rules"
 
 
-def iter_entry_points(group: str) -> List:
+def iter_entry_points(group: str) -> list[Any]:
     """Return entry points for ``group`` across Python versions."""
 
     from importlib import metadata
@@ -50,7 +54,7 @@ def iter_entry_points(group: str) -> List:
     return list(eps.get(group, []))  # Python 3.9
 
 
-def _load_builtin_scanners() -> Sequence[Type]:
+def _load_builtin_scanners() -> Sequence[type[Scanner]]:
     from conflint.scanners import (
         GoScanner,
         JavaScriptScanner,
@@ -61,7 +65,7 @@ def _load_builtin_scanners() -> Sequence[Type]:
     return (PythonScanner, JavaScriptScanner, GoScanner, RubyScanner)
 
 
-def _load_builtin_sources() -> Sequence[Type]:
+def _load_builtin_sources() -> Sequence[type[ConfigSource]]:
     from conflint.sources import (
         DockerComposeSource,
         DotenvSource,
@@ -79,7 +83,7 @@ def _load_builtin_sources() -> Sequence[Type]:
     )
 
 
-def _load_builtin_rules() -> Sequence[Type]:
+def _load_builtin_rules() -> Sequence[type[Rule]]:
     from conflint.rules import (
         DriftRule,
         DuplicateRule,
@@ -105,46 +109,48 @@ def _load_builtin_rules() -> Sequence[Type]:
     )
 
 
-def _load_plugins(group: str) -> List:
-    loaded = []
+def _load_plugins(group: str) -> list[type[Any]]:
+    loaded: list[type[Any]] = []
     for ep in iter_entry_points(group):
         try:
             loaded.append(ep.load())
-        except Exception as exc:  # noqa: BLE001 - isolate plugin failures
+        except Exception as exc:
             logger.warning("skipping plugin %s: %s", getattr(ep, "name", ep), exc)
     return loaded
 
 
-def get_scanners() -> List:
+def get_scanners() -> list[Scanner]:
     """Instantiate every available scanner, built-in first."""
 
-    classes: Iterable[Type] = list(_load_builtin_scanners()) + _load_plugins(SCANNER_GROUP)
+    classes: Iterable[type[Scanner]] = list(_load_builtin_scanners()) + _load_plugins(SCANNER_GROUP)
     return [cls() for cls in classes]
 
 
-def get_sources() -> List:
+def get_sources() -> list[ConfigSource]:
     """Instantiate every available configuration source."""
 
-    classes: Iterable[Type] = list(_load_builtin_sources()) + _load_plugins(SOURCE_GROUP)
+    classes: Iterable[type[ConfigSource]] = list(_load_builtin_sources()) + _load_plugins(
+        SOURCE_GROUP
+    )
     return [cls() for cls in classes]
 
 
-def get_rules(enabled: Sequence[str] | None = None) -> Dict[str, object]:
+def get_rules(enabled: Sequence[str] | None = None) -> dict[str, Rule]:
     """Instantiate rules keyed by rule id, optionally filtered/enabled in order."""
 
-    classes: Iterable[Type] = list(_load_builtin_rules()) + _load_plugins(RULE_GROUP)
-    rules: Dict[str, object] = {}
+    classes: Iterable[type[Rule]] = list(_load_builtin_rules()) + _load_plugins(RULE_GROUP)
+    rules: dict[str, Rule] = {}
     for cls in classes:
         try:
             instance = cls()
-        except Exception as exc:  # noqa: BLE001 - isolate plugin failures
+        except Exception as exc:
             logger.warning("skipping rule %s: %s", cls, exc)
             continue
         rules[instance.id] = instance
 
     if enabled is not None:
-        wanted = [r for r in enabled]
-        ordered: Dict[str, object] = {}
+        wanted = list(enabled)
+        ordered: dict[str, Rule] = {}
         for rule_id in wanted:
             if rule_id in rules:
                 ordered[rule_id] = rules[rule_id]

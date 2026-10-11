@@ -12,21 +12,22 @@ the reconciled graph of usages/entries into findings.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
+from typing import Any
 
 __all__ = [
-    "Severity",
-    "Language",
-    "Location",
-    "Usage",
+    "Config",
     "Entry",
     "Finding",
+    "Language",
+    "Location",
     "Report",
-    "Config",
+    "Severity",
     "SourceSummary",
+    "Usage",
 ]
 
 
@@ -42,7 +43,7 @@ class Severity(str, Enum):
         return {"error": 3, "warning": 2, "info": 1}[self.value]
 
     @classmethod
-    def coerce(cls, value: "Severity | str") -> "Severity":
+    def coerce(cls, value: Severity | str) -> Severity:
         if isinstance(value, Severity):
             return value
         return cls(str(value).lower())
@@ -81,14 +82,14 @@ class Location:
             return f"{self.path}:{self.line}:{self.column}"
         return str(self.path)
 
-    def relative_to(self, root: Path) -> "Location":
+    def relative_to(self, root: Path) -> Location:
         try:
             rel = self.path.resolve().relative_to(root.resolve())
         except (ValueError, OSError):
             rel = self.path
         return Location(rel, self.line, self.column)
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {"path": str(self.path), "line": self.line, "column": self.column}
 
 
@@ -102,8 +103,8 @@ class Usage:
     read_via: str = ""
     required: bool = False
     has_default: bool = False
-    default: Optional[str] = None
-    notes: Tuple[str, ...] = ()
+    default: str | None = None
+    notes: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.name:
@@ -113,7 +114,7 @@ class Usage:
     def is_optional(self) -> bool:
         return self.has_default
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "location": self.location.as_dict(),
@@ -130,12 +131,12 @@ class Entry:
     """A definition of a configuration value from a known source."""
 
     name: str
-    value: Optional[str]
+    value: str | None
     location: Location
     source: str
     is_secret: bool = False
     is_example: bool = False
-    notes: Tuple[str, ...] = ()
+    notes: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.name:
@@ -152,7 +153,7 @@ class Entry:
         v = self.value.strip().strip("\"'").lower()
         return v in {"", "changeme", "change_me", "todo", "your-key-here", "xxx", "placeholder"}
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "value": self.value,
@@ -170,21 +171,21 @@ class Finding:
     rule_id: str
     severity: Severity
     message: str
-    key: Optional[str] = None
-    location: Optional[Location] = None
-    help: Optional[str] = None
+    key: str | None = None
+    location: Location | None = None
+    help: str | None = None
     fixable: bool = False
-    data: Dict[str, Any] = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=dict)
 
     @property
-    def sort_key(self) -> Tuple[int, str, str, int, int]:
+    def sort_key(self) -> tuple[int, str, str, int, int]:
         loc = self.location
         path = str(loc.path) if loc else ""
         line = loc.line if loc else 0
         col = loc.column if loc else 0
         return (-self.severity.rank, path, self.rule_id, line, col)
 
-    def as_dict(self, root: Optional[Path] = None) -> Dict[str, Any]:
+    def as_dict(self, root: Path | None = None) -> dict[str, Any]:
         loc = self.location
         location = None
         if loc is not None:
@@ -206,11 +207,11 @@ class SourceSummary:
     """Aggregate information about one configuration source."""
 
     name: str
-    files: Tuple[Path, ...] = ()
+    files: tuple[Path, ...] = ()
     entries: int = 0
     is_example: bool = False
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "files": [str(f) for f in self.files],
@@ -228,39 +229,35 @@ class Config:
     """
 
     root: Path
-    usages: List[Usage] = field(default_factory=list)
-    entries: List[Entry] = field(default_factory=list)
-    sources: List[SourceSummary] = field(default_factory=list)
-    settings: Dict[str, Any] = field(default_factory=dict)
+    usages: list[Usage] = field(default_factory=list)
+    entries: list[Entry] = field(default_factory=list)
+    sources: list[SourceSummary] = field(default_factory=list)
+    settings: dict[str, Any] = field(default_factory=dict)
 
     # -- derived indexes -------------------------------------------------
-    def usages_by_name(self) -> Dict[str, List[Usage]]:
-        index: Dict[str, List[Usage]] = {}
+    def usages_by_name(self) -> dict[str, list[Usage]]:
+        index: dict[str, list[Usage]] = {}
         for usage in self.usages:
             index.setdefault(usage.name, []).append(usage)
         return index
 
-    def entries_by_name(self) -> Dict[str, List[Entry]]:
-        index: Dict[str, List[Entry]] = {}
+    def entries_by_name(self) -> dict[str, list[Entry]]:
+        index: dict[str, list[Entry]] = {}
         for entry in self.entries:
             index.setdefault(entry.name, []).append(entry)
         return index
 
-    def entries_by_source(self, source: str) -> List[Entry]:
+    def entries_by_source(self, source: str) -> list[Entry]:
         return [e for e in self.entries if e.source == source]
 
-    def defined_names(self, *, include_examples: bool = True) -> Set[str]:
-        return {
-            e.name
-            for e in self.entries
-            if include_examples or not e.is_example
-        }
+    def defined_names(self, *, include_examples: bool = True) -> set[str]:
+        return {e.name for e in self.entries if include_examples or not e.is_example}
 
-    def real_defined_names(self) -> Set[str]:
+    def real_defined_names(self) -> set[str]:
         """Names defined by a *non-example* source (what will exist at runtime)."""
         return {e.name for e in self.entries if not e.is_example}
 
-    def used_names(self) -> Set[str]:
+    def used_names(self) -> set[str]:
         return {u.name for u in self.usages}
 
     def iter_names(self) -> Iterator[str]:
@@ -279,24 +276,24 @@ class Config:
 class Report:
     """The complete result of a run."""
 
-    findings: List[Finding] = field(default_factory=list)
+    findings: list[Finding] = field(default_factory=list)
     usages: int = 0
     entries: int = 0
     files_scanned: int = 0
     duration_ms: float = 0.0
-    sources: List[SourceSummary] = field(default_factory=list)
+    sources: list[SourceSummary] = field(default_factory=list)
 
-    def sorted_findings(self) -> List[Finding]:
+    def sorted_findings(self) -> list[Finding]:
         return sorted(self.findings, key=lambda f: f.sort_key)
 
-    def count_by_severity(self) -> Dict[str, int]:
+    def count_by_severity(self) -> dict[str, int]:
         counts = {s.value: 0 for s in Severity}
         for finding in self.findings:
             counts[finding.severity.value] += 1
         return counts
 
     @property
-    def max_severity(self) -> Optional[Severity]:
+    def max_severity(self) -> Severity | None:
         if not self.findings:
             return None
         return max(f.severity for f in self.findings)

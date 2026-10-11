@@ -8,10 +8,9 @@ the run fails, ``skipped`` otherwise (mirroring how linters are consumed).
 from __future__ import annotations
 
 import xml.etree.ElementTree as ET
-from pathlib import Path
 
 from conflint.config import Settings
-from conflint.models import Finding, Report, Severity
+from conflint.models import Finding, Report
 from conflint.reporters.base import Reporter
 
 __all__ = ["JunitReporter"]
@@ -23,11 +22,11 @@ class JunitReporter(Reporter):
 
     def render(self, report: Report, settings: Settings) -> str:
         findings = report.sorted_findings()
-        failed = sum(
-            1 for f in findings if f.severity.rank >= settings.fail_level.rank
-        )
+        failed = sum(1 for f in findings if f.severity.rank >= settings.fail_level.rank)
 
-        testsuite = ET.Element(
+        suites = ET.Element("testsuites", {"name": "conflint"})
+        testsuite = ET.SubElement(
+            suites,
             "testsuite",
             {
                 "name": "conflint",
@@ -48,12 +47,10 @@ class JunitReporter(Reporter):
                 },
             )
             tag = "failure" if finding.severity.rank >= settings.fail_level.rank else "skipped"
-            node = ET.SubElement(
-                case, tag, {"message": f"{finding.message} ({finding.rule_id})"}
-            )
+            node = ET.SubElement(case, tag, {"message": f"{finding.message} ({finding.rule_id})"})
             node.text = finding.help or finding.message
 
-        tree = ET.ElementTree(testsuite)
+        tree = ET.ElementTree(suites)
         return _serialize(tree)
 
     @staticmethod

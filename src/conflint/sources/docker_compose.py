@@ -7,8 +7,9 @@ keys of referenced ``env_file`` files (as notes).  Both the list style
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Any, List, Mapping
+from typing import Any
 
 from conflint.models import Entry, Location
 from conflint.sources._yaml import load_documents
@@ -43,8 +44,8 @@ class DockerComposeSource(ConfigSource):
             return True
         return name.startswith("docker-compose") and name.endswith((".yml", ".yaml"))
 
-    def parse(self, path: Path, text: str) -> List[Entry]:
-        entries: List[Entry] = []
+    def parse(self, path: Path, text: str) -> list[Entry]:
+        entries: list[Entry] = []
         for document in load_documents(text):
             if not isinstance(document, Mapping):
                 continue
@@ -59,8 +60,8 @@ class DockerComposeSource(ConfigSource):
 
     def _parse_environment(
         self, path: Path, text: str, service_name: str, service: Mapping[str, Any]
-    ) -> List[Entry]:
-        entries: List[Entry] = []
+    ) -> list[Entry]:
+        entries: list[Entry] = []
         env = service.get("environment")
         if isinstance(env, Mapping):
             for key, value in env.items():
@@ -71,15 +72,11 @@ class DockerComposeSource(ConfigSource):
                     continue
                 key, sep, value = item.partition("=")
                 entries.append(
-                    self._entry(
-                        path, text, key.strip(), value if sep else None, service_name
-                    )
+                    self._entry(path, text, key.strip(), value if sep else None, service_name)
                 )
         return entries
 
-    def _entry(
-        self, path: Path, text: str, key: str, value: Any, service_name: str
-    ) -> Entry:
+    def _entry(self, path: Path, text: str, key: str, value: Any, service_name: str) -> Entry:
         line = find_line(text, key)
         return Entry(
             name=key,

@@ -16,19 +16,20 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
 
 from conflint.config import Settings
 from conflint.discovery import discover
 from conflint.exceptions import RuleError
-from conflint.models import Config, Entry, Report, SourceSummary
+from conflint.models import Config, Entry, Finding, Report, SourceSummary, Usage
 from conflint.registry import get_rules, get_scanners, get_sources
+from conflint.sources import ConfigSource
 from conflint.utils import read_text
 
 logger = logging.getLogger("conflint.engine")
 
-__all__ = ["analyze", "Analyzer"]
+__all__ = ["Analyzer", "analyze"]
 
 # Order matters: files that could be claimed by several sources (YAML files,
 # particularly) are parsed by the first matching source.
@@ -52,7 +53,7 @@ class Analyzer:
             if not settings.sources or source.name in settings.sources
         ]
 
-        def _source_key(source) -> int:
+        def _source_key(source: ConfigSource) -> int:
             try:
                 return _SOURCE_PRIORITY.index(source.name)
             except ValueError:
@@ -67,12 +68,12 @@ class Analyzer:
 
         settings = self.settings
 
-        config_globs: List[str] = []
+        config_globs: list[str] = []
         for source in self._sources:
             config_globs.extend(source.candidate_globs())
 
         discovered = discover(settings.root, settings, config_globs=config_globs)
-        self._last_file_count = len(discovered.code_files)
+        self._last_file_count = len(discovered.all)
 
         usages = self._scan_code(discovered.code_files)
         entries = self._parse_sources(discovered.config_files)
@@ -104,8 +105,8 @@ class Analyzer:
         )
 
     # -- pipeline steps --------------------------------------------------
-    def _scan_code(self, files: Sequence[Path]) -> List:
-        usages = []
+    def _scan_code(self, files: Sequence[Path]) -> list[Usage]:
+        usages: list[Usage] = []
         for path in files:
             for scanner in self._scanners:
                 if not scanner.handles(path):
@@ -119,11 +120,11 @@ class Analyzer:
                 break
         return usages
 
-    def _parse_sources(self, files: Sequence[Path]) -> List[Entry]:
+    def _parse_sources(self, files: Sequence[Path]) -> list[Entry]:
         # A file is parsed (at most once) by the highest-priority source that
         # claims it (YAML files, for instance, can match several sources).
-        parsed: set = set()
-        entries: List[Entry] = []
+        parsed: set[str] = set()
+        entries: list[Entry] = []
         for source in self._sources:
             for path in files:
                 if str(path) in parsed or not source.matches(path):
@@ -137,44 +138,42 @@ class Analyzer:
                 parsed.add(str(path))
         return entries
 
-    def _mark_examples(self, entries: List[Entry]) -> List[Entry]:
+    def _mark_examples(self, entries: list[Entry]) -> list[Entry]:
         example_names = {name.lower() for name in self.settings.example_files}
         for entry in entries:
             if entry.location.path.name.lower() in example_names:
                 entry.is_example = True
         return entries
 
-    def _run_rules(self, model: Config) -> List:
-        findings = []
+    def _run_rules(self, model: Config) -> list[Finding]:
+        findings: list[Finding] = []
         for rule_id, rule in self._rules.items():
             if self.settings.is_disabled(rule_id):
                 continue
             try:
                 findings.extend(rule.check(model, self.settings))
-            except Exception as exc:  # noqa: BLE001 - isolate rule failures
+            except Exception as exc:
                 raise RuleError(f"rule {rule_id} failed: {exc}") from exc
         return findings
 
-    def _apply_overrides(self, findings: List) -> None:
+    def _apply_overrides(self, findings: list[Finding]) -> None:
         for finding in findings:
             override = self.settings.severity_for(finding.rule_id)
             if override is not None:
                 finding.severity = override
 
     @staticmethod
-    def _summarize(entries: List[Entry]) -> List[SourceSummary]:
-        grouped: Dict[str, "list"] = {}
+    def _summarize(entries: list[Entry]) -> list[SourceSummary]:
+        grouped: dict[str, SourceSummary] = {}
         for entry in entries:
-            summary = grouped.setdefault(
-                entry.source, SourceSummary(name=entry.source)
-            )
+            summary = grouped.setdefault(entry.source, SourceSummary(name=entry.source))
             summary.entries += 1
             if entry.location.path not in summary.files:
                 summary.files = (*summary.files, entry.location.path)
         return sorted(grouped.values(), key=lambda s: s.name)
 
 
-def analyze(settings: Settings, *, previous: Optional[Analyzer] = None) -> Report:
+def analyze(settings: Settings, *, previous: Analyzer | None = None) -> Report:
     """Convenience wrapper around :class:`Analyzer`."""
 
     if previous is not None:

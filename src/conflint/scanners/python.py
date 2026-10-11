@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Tuple
 
 from conflint.models import Language, Location, Usage
 from conflint.scanners.base import Scanner
@@ -32,10 +31,10 @@ class _EnvVisitor(ast.NodeVisitor):
 
     def __init__(self, path: Path) -> None:
         self.path = path
-        self.usages: List[Usage] = []
-        self._os_aliases: Set[str] = {"os"}
-        self._environ_aliases: Set[str] = {"environ"}
-        self._getenv_aliases: Set[str] = {"getenv"}
+        self.usages: list[Usage] = []
+        self._os_aliases: set[str] = {"os"}
+        self._environ_aliases: set[str] = {"environ"}
+        self._getenv_aliases: set[str] = {"getenv"}
 
     # -- import tracking -------------------------------------------------
     def visit_Import(self, node: ast.Import) -> None:
@@ -54,7 +53,7 @@ class _EnvVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     # -- helpers ---------------------------------------------------------
-    def _is_environ_expr(self, node: ast.AST) -> Optional[str]:
+    def _is_environ_expr(self, node: ast.AST) -> str | None:
         """Return a human label if ``node`` refers to the ``os.environ`` mapping."""
 
         if isinstance(node, ast.Name) and node.id in self._environ_aliases:
@@ -68,7 +67,7 @@ class _EnvVisitor(ast.NodeVisitor):
             return f"{node.value.id}.environ"
         return None
 
-    def _is_getenv_func(self, node: ast.AST) -> Optional[str]:
+    def _is_getenv_func(self, node: ast.AST) -> str | None:
         if isinstance(node, ast.Name) and node.id in self._getenv_aliases:
             return node.id
         if (
@@ -81,7 +80,7 @@ class _EnvVisitor(ast.NodeVisitor):
         return None
 
     @staticmethod
-    def _const_str(node: ast.AST) -> Optional[str]:
+    def _const_str(node: ast.AST) -> str | None:
         if isinstance(node, ast.Constant) and isinstance(node.value, str):
             return node.value
         return None
@@ -94,12 +93,14 @@ class _EnvVisitor(ast.NodeVisitor):
         *,
         required: bool,
         has_default: bool,
-        default: Optional[str],
+        default: str | None,
     ) -> None:
         self.usages.append(
             Usage(
                 name=name,
-                location=Location(self.path, getattr(node, "lineno", 0), getattr(node, "col_offset", 0) + 1),
+                location=Location(
+                    self.path, getattr(node, "lineno", 0), getattr(node, "col_offset", 0) + 1
+                ),
                 language=Language.PYTHON,
                 read_via=read_via,
                 required=required,
@@ -130,7 +131,9 @@ class _EnvVisitor(ast.NodeVisitor):
                                 f"{environ_label}.setdefault()",
                                 required=False,
                                 has_default=True,
-                                default=self._const_str(node.args[1]) if len(node.args) > 1 else None,
+                                default=self._const_str(node.args[1])
+                                if len(node.args) > 1
+                                else None,
                             )
                         else:
                             self._record_call_default(key, node, f"{environ_label}.{func.attr}()")
@@ -138,7 +141,7 @@ class _EnvVisitor(ast.NodeVisitor):
 
     def _record_call_default(self, key: str, node: ast.Call, read_via: str) -> None:
         if len(node.args) >= 2 or any(kw.arg in {"default", "key"} for kw in node.keywords):
-            default_node: Optional[ast.AST] = None
+            default_node: ast.AST | None = None
             if len(node.args) >= 2:
                 default_node = node.args[1]
             else:
@@ -181,7 +184,7 @@ class PythonScanner(Scanner):
     language = Language.PYTHON
     extensions = (".py", ".pyi")
 
-    def scan(self, path: Path, text: str) -> List[Usage]:
+    def scan(self, path: Path, text: str) -> list[Usage]:
         try:
             tree = ast.parse(text, filename=str(path))
         except SyntaxError:

@@ -13,18 +13,17 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import List
 
 from conflint.models import Language, Location, Usage
 from conflint.scanners.base import Scanner
 
 __all__ = ["RubyScanner"]
 
-_RE_FETCH = re.compile(
-    r"\bENV\.fetch\(\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]\s*(?P<rest>[\),])"
-)
+_RE_FETCH = re.compile(r"\bENV\.fetch\(\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]\s*(?P<rest>[\),])")
 _RE_SUBSCRIPT = re.compile(r"\bENV\[\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]\s*\]")
-_RE_KEY = re.compile(r"\bENV\.(?:key\?|include\?|has_key\?|fetch)\(\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]")
+_RE_KEY = re.compile(
+    r"\bENV\.(?:key\?|include\?|has_key\?|fetch)\(\s*['\"]([A-Za-z_][A-Za-z0-9_]*)['\"]"
+)
 _RE_FALLBACK = re.compile(r"\s*\|\|\s*(?P<default>'[^']*'|\"[^\"]*\")")
 
 
@@ -35,8 +34,8 @@ class RubyScanner(Scanner):
     language = Language.RUBY
     extensions = (".rb",)
 
-    def scan(self, path: Path, text: str) -> List[Usage]:
-        usages: List[Usage] = []
+    def scan(self, path: Path, text: str) -> list[Usage]:
+        usages: list[Usage] = []
 
         for match in _RE_FETCH.finditer(text):
             name = match.group(1)
@@ -74,7 +73,7 @@ class RubyScanner(Scanner):
 
         return usages
 
-    def _inline_default(self, text: str, end: int) -> tuple:
+    def _inline_default(self, text: str, end: int) -> tuple[str | None, bool]:
         match = _RE_FALLBACK.match(text[end : end + 40])
         if not match:
             return None, False

@@ -10,10 +10,9 @@ the file name) so sources never need to special-case it.
 
 from __future__ import annotations
 
-import re
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Sequence, Tuple
 
 from conflint.models import Entry
 
@@ -40,7 +39,7 @@ class ConfigSource(ABC):
     name: str = "base"
     #: Glob patterns (relative to the project root) used by discovery to locate
     #: candidate files.  These intentionally bypass ``.gitignore``.
-    config_globs: Tuple[str, ...] = ()
+    config_globs: tuple[str, ...] = ()
 
     def matches(self, path: Path) -> bool:
         """Whether this source is responsible for parsing ``path``."""
@@ -48,7 +47,7 @@ class ConfigSource(ABC):
         return False
 
     @abstractmethod
-    def parse(self, path: Path, text: str) -> List[Entry]:
+    def parse(self, path: Path, text: str) -> list[Entry]:
         """Parse ``text`` into entries.  Must never raise on malformed input."""
 
     # -- helpers ---------------------------------------------------------

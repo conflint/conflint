@@ -8,8 +8,8 @@ never touches the filesystem itself — the engine reads the file and hands over
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Sequence, Tuple
 
 from conflint.models import Language, Usage
 
@@ -24,7 +24,7 @@ class Scanner(ABC):
     #: The language reported on emitted usages.
     language: Language = Language.GENERIC
     #: Lower-case file extensions handled by this scanner (including the dot).
-    extensions: Tuple[str, ...] = ()
+    extensions: tuple[str, ...] = ()
 
     def handles(self, path: Path) -> bool:
         """Whether this scanner should process ``path``."""
@@ -32,7 +32,7 @@ class Scanner(ABC):
         return path.suffix.lower() in self.extensions
 
     @abstractmethod
-    def scan(self, path: Path, text: str) -> List[Usage]:
+    def scan(self, path: Path, text: str) -> list[Usage]:
         """Extract usages from ``text`` belonging to ``path``."""
 
     # -- helpers ---------------------------------------------------------

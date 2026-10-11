@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List, Optional
-
 from conflint.config import Settings
 from conflint.models import Config, Finding, Severity
 from conflint.rules.base import Rule
@@ -46,8 +44,8 @@ class WeakSecretRule(Rule):
     description = "A secret-looking value equals a weak or default placeholder."
     fixable = False
 
-    def check(self, config: Config, settings: Settings) -> List[Finding]:
-        findings: List[Finding] = []
+    def check(self, config: Config, settings: Settings) -> list[Finding]:
+        findings: list[Finding] = []
         for entry in config.entries:
             if entry.is_example or not is_sensitive_name(entry.name):
                 continue
@@ -65,7 +63,7 @@ class WeakSecretRule(Rule):
         return findings
 
     @staticmethod
-    def _is_weak(name: str, value: Optional[str]) -> bool:
+    def _is_weak(name: str, value: str | None) -> bool:
         if value is None:
             return False
         v = value.strip().strip("\"'").lower()
@@ -74,6 +72,4 @@ class WeakSecretRule(Rule):
         if v in _WEAK_VALUES:
             return True
         lowered_name = name.lower()
-        if v in {lowered_name, f"your-{lowered_name}", f"your_{lowered_name}"}:
-            return True
-        return False
+        return v in {lowered_name, f"your-{lowered_name}", f"your_{lowered_name}"}

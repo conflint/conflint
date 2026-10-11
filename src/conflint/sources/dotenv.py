@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 from conflint.models import Entry, Location
 from conflint.sources.base import ConfigSource
@@ -40,8 +39,8 @@ class DotenvSource(ConfigSource):
     def matches(self, path: Path) -> bool:
         return bool(_ENV_NAME.match(self._norm_name(path)))
 
-    def parse(self, path: Path, text: str) -> List[Entry]:
-        entries: List[Entry] = []
+    def parse(self, path: Path, text: str) -> list[Entry]:
+        entries: list[Entry] = []
         for lineno, raw in enumerate(text.splitlines(), start=1):
             line = raw.strip()
             if not line or line.startswith("#"):
@@ -68,7 +67,9 @@ class DotenvSource(ConfigSource):
         """Remove a trailing ``# comment`` unless the value is quoted."""
 
         v = value.strip()
-        if v[:1] in "\"'":
+        if not v:
+            return v
+        if v[0] in "\"'":
             quote = v[0]
             end = v.find(quote, 1)
             if end != -1:

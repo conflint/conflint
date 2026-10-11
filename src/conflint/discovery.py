@@ -13,12 +13,16 @@ Two very different notions of "should I look at this file" are needed:
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from fnmatch import fnmatch
 from pathlib import Path
-from typing import Iterator, List, Optional, Sequence
+from typing import TYPE_CHECKING, Any
 
 from conflint.config import Settings
+
+if TYPE_CHECKING:
+    from pathspec import PathSpec
 
 logger = logging.getLogger("conflint.discovery")
 
@@ -37,13 +41,13 @@ class DiscoveredFiles:
     """Result of a discovery pass."""
 
     root: Path
-    code_files: List[Path]
-    config_files: List[Path]
+    code_files: list[Path]
+    config_files: list[Path]
 
     @property
-    def all(self) -> List[Path]:
+    def all(self) -> list[Path]:
         seen = set()
-        merged: List[Path] = []
+        merged: list[Path] = []
         for path in [*self.code_files, *self.config_files]:
             if path not in seen:
                 seen.add(path)
@@ -51,12 +55,12 @@ class DiscoveredFiles:
         return merged
 
 
-def load_gitignore(root: Path):
+def load_gitignore(root: Path) -> PathSpec[Any] | None:
     """Return a compiled :class:`pathspec.PathSpec` for the repo, or ``None``."""
 
     if not _HAS_PATHSPEC:
         return None
-    lines: List[str] = []
+    lines: list[str] = []
     for candidate in (root / ".gitignore", root / ".git" / "info" / "exclude"):
         if candidate.is_file():
             try:
@@ -65,7 +69,7 @@ def load_gitignore(root: Path):
                 continue
     if not lines:
         return None
-    return pathspec.PathSpec.from_lines("gitwildmatch", lines)
+    return pathspec.PathSpec.from_lines("gitignore", lines)
 
 
 def _norm(path: Path) -> str:
@@ -93,10 +97,12 @@ def _matches_include(path: Path, root: Path, settings: Settings) -> bool:
     except (ValueError, OSError):
         rel = path
     text = _norm(rel)
-    return any(fnmatch(text, pattern) or fnmatch("/" + text, pattern) for pattern in settings.include)
+    return any(
+        fnmatch(text, pattern) or fnmatch("/" + text, pattern) for pattern in settings.include
+    )
 
 
-def _walk_files(root: Path, spec) -> Iterator[Path]:
+def _walk_files(root: Path, spec: PathSpec[Any] | None) -> Iterator[Path]:
     for path in sorted(root.rglob("*")):
         if not path.is_file():
             continue
@@ -110,7 +116,9 @@ def _walk_files(root: Path, spec) -> Iterator[Path]:
         yield path
 
 
-def discover(root: Path, settings: Settings, *, config_globs: Sequence[str] = ()) -> DiscoveredFiles:
+def discover(
+    root: Path, settings: Settings, *, config_globs: Sequence[str] = ()
+) -> DiscoveredFiles:
     """Walk the project and classify files.
 
     ``config_globs`` are additional glob patterns (relative to ``root``) that
@@ -120,11 +128,15 @@ def discover(root: Path, settings: Settings, *, config_globs: Sequence[str] = ()
     root = root.resolve()
     spec = load_gitignore(root)
 
-    code_files: List[Path] = []
-    config_files: List[Path] = []
+    code_files: list[Path] = []
+    config_files: list[Path] = []
     seen_config = set()
 
     for path in _walk_files(root, spec):
+        if path.name.startswith("."):
+            # Dotfiles (.env, .gitignore, ...) are rarely source code; they are
+            # handled by the config-source globs or excluded themselves.
+            continue
         if is_excluded(path, root, settings):
             continue
         if _matches_include(path, root, settings):

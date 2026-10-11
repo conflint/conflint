@@ -11,8 +11,8 @@ from conflint.sources.terraform import TerraformSource
 
 __all__ = [
     "ConfigSource",
-    "DotenvSource",
     "DockerComposeSource",
+    "DotenvSource",
     "GitHubActionsSource",
     "KubernetesSource",
     "TerraformSource",

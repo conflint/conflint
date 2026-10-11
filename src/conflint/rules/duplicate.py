@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 from conflint.config import Settings
 from conflint.models import Config, Entry, Finding, Severity
@@ -20,18 +19,18 @@ class DuplicateRule(Rule):
     description = "A key is defined more than once, or real sources disagree on its value."
     fixable = False
 
-    def check(self, config: Config, settings: Settings) -> List[Finding]:
-        findings: List[Finding] = []
+    def check(self, config: Config, settings: Settings) -> list[Finding]:
+        findings: list[Finding] = []
         findings.extend(self._duplicates_in_file(config, settings))
         findings.extend(self._conflicting_values(config, settings))
         return findings
 
-    def _duplicates_in_file(self, config: Config, settings: Settings) -> List[Finding]:
-        by_file: Dict[Tuple[Path, str], List[Entry]] = defaultdict(list)
+    def _duplicates_in_file(self, config: Config, settings: Settings) -> list[Finding]:
+        by_file: dict[tuple[Path, str], list[Entry]] = defaultdict(list)
         for entry in config.entries:
             by_file[(entry.location.path, entry.name)].append(entry)
 
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         for (path, name), entries in by_file.items():
             if len(entries) < 2 or settings.is_name_ignored(name):
                 continue
@@ -46,13 +45,13 @@ class DuplicateRule(Rule):
             )
         return findings
 
-    def _conflicting_values(self, config: Config, settings: Settings) -> List[Finding]:
-        by_name: Dict[str, List[Entry]] = defaultdict(list)
+    def _conflicting_values(self, config: Config, settings: Settings) -> list[Finding]:
+        by_name: dict[str, list[Entry]] = defaultdict(list)
         for entry in config.entries:
             if not entry.is_example and not entry.is_empty:
                 by_name[entry.name].append(entry)
 
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         for name, entries in by_name.items():
             if settings.is_name_ignored(name):
                 continue

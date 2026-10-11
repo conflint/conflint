@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List
-
 from conflint.config import Settings
 from conflint.models import Config, Finding, Severity
 from conflint.rules.base import Rule
@@ -18,11 +16,9 @@ class EmptyValueRule(Rule):
     description = "A value required by code is defined but left empty."
     fixable = False
 
-    def check(self, config: Config, settings: Settings) -> List[Finding]:
-        required_names = {
-            usage.name for usage in config.usages if usage.required
-        }
-        findings: List[Finding] = []
+    def check(self, config: Config, settings: Settings) -> list[Finding]:
+        required_names = {usage.name for usage in config.usages if usage.required}
+        findings: list[Finding] = []
         seen = set()
         for entry in config.entries:
             if entry.is_example or entry.name in seen:

@@ -5,24 +5,27 @@ from __future__ import annotations
 import math
 import os
 import re
+from collections.abc import Hashable, Iterable, Sequence
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence, Tuple
+from typing import TypeVar
+
+_T = TypeVar("_T")
 
 __all__ = [
-    "read_text",
-    "strip_quotes",
-    "levenshtein",
-    "close_matches",
-    "tokenize_env_name",
-    "guess_prefix",
-    "is_sensitive_name",
-    "shannon_entropy",
-    "looks_like_secret",
     "chunk",
+    "close_matches",
     "dedupe_preserve_order",
+    "guess_prefix",
     "humanize_ms",
-    "relative_display",
+    "is_sensitive_name",
     "is_valid_env_name",
+    "levenshtein",
+    "looks_like_secret",
+    "read_text",
+    "relative_display",
+    "shannon_entropy",
+    "strip_quotes",
+    "tokenize_env_name",
 ]
 
 _ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -71,7 +74,7 @@ def read_text(path: Path, *, encoding: str = "utf-8") -> str:
     return data.decode(encoding, errors="replace")
 
 
-def strip_quotes(value: Optional[str]) -> Optional[str]:
+def strip_quotes(value: str | None) -> str | None:
     """Remove a single matching pair of surrounding quotes and trim spaces."""
 
     if value is None:
@@ -110,7 +113,7 @@ def close_matches(
     *,
     max_distance: int = 2,
     limit: int = 3,
-) -> List[Tuple[str, int]]:
+) -> list[tuple[str, int]]:
     """Return ``(candidate, distance)`` pairs close to ``needle``.
 
     Case-insensitive distance is used so that ``dbhost`` matches ``DB_HOST``
@@ -118,7 +121,7 @@ def close_matches(
     """
 
     lowered = needle.lower().replace("-", "_")
-    scored: List[Tuple[str, int]] = []
+    scored: list[tuple[str, int]] = []
     for candidate in haystack:
         if candidate == needle:
             continue
@@ -129,7 +132,7 @@ def close_matches(
     return scored[:limit]
 
 
-def tokenize_env_name(name: str) -> List[str]:
+def tokenize_env_name(name: str) -> list[str]:
     """Split an env-style name into lower-cased word tokens."""
 
     return [t for t in re.split(r"[^A-Za-z0-9]+", name.lower()) if t]
@@ -161,7 +164,6 @@ _PLACEHOLDER_VALUES = {
     "placeholder",
     "example",
     "xxx",
-    "xxx",
     "test",
     "password",
     "secret",
@@ -181,14 +183,17 @@ def shannon_entropy(value: str) -> float:
 
     if not value:
         return 0.0
-    counts = {}
+    counts: dict[str, int] = {}
     for char in value:
         counts[char] = counts.get(char, 0) + 1
     length = len(value)
-    return -sum((count / length) * math.log2(count / length) for count in counts.values())
+    total = 0.0
+    for count in counts.values():
+        total += (count / length) * math.log2(count / length)
+    return -total
 
 
-def looks_like_secret(value: Optional[str], *, entropy_threshold: float = 3.5) -> bool:
+def looks_like_secret(value: str | None, *, entropy_threshold: float = 3.5) -> bool:
     """Heuristic: does ``value`` look like a real, high-entropy secret?
 
     Real secrets are long, mix character classes, avoid whitespace and exceed a
@@ -212,7 +217,7 @@ def looks_like_secret(value: Optional[str], *, entropy_threshold: float = 3.5) -
     return shannon_entropy(v) >= entropy_threshold
 
 
-def chunk(items: Sequence, size: int) -> Iterable[Sequence]:
+def chunk(items: Sequence[_T], size: int) -> Iterable[Sequence[_T]]:
     """Yield consecutive slices of ``items`` of length ``size``."""
 
     if size <= 0:
@@ -221,11 +226,11 @@ def chunk(items: Sequence, size: int) -> Iterable[Sequence]:
         yield items[start : start + size]
 
 
-def dedupe_preserve_order(items: Iterable) -> List:
+def dedupe_preserve_order(items: Iterable[Hashable]) -> list[Hashable]:
     """Return unique items keeping first-seen order (items must be hashable)."""
 
-    seen: set = set()
-    out: List = []
+    seen: set[Hashable] = set()
+    out: list[Hashable] = []
     for item in items:
         if item not in seen:
             seen.add(item)
@@ -241,7 +246,7 @@ def humanize_ms(value: float) -> str:
     return f"{value / 1000:.2f}s"
 
 
-def relative_display(path: Path, root: Optional[Path]) -> str:
+def relative_display(path: Path, root: Path | None) -> str:
     """Render ``path`` relative to ``root`` when possible."""
 
     if root is None:

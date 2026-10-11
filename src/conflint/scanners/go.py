@@ -12,16 +12,13 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import List
 
 from conflint.models import Language, Location, Usage
 from conflint.scanners.base import Scanner
 
 __all__ = ["GoScanner"]
 
-_RE_CALL = re.compile(
-    r"\bos\.(Getenv|LookupEnv|Setenv|Unsetenv)\(\s*\"([A-Za-z_][A-Za-z0-9_]*)\""
-)
+_RE_CALL = re.compile(r"\bos\.(Getenv|LookupEnv|Setenv|Unsetenv)\(\s*\"([A-Za-z_][A-Za-z0-9_]*)\"")
 
 
 class GoScanner(Scanner):
@@ -31,11 +28,11 @@ class GoScanner(Scanner):
     language = Language.GO
     extensions = (".go",)
 
-    def scan(self, path: Path, text: str) -> List[Usage]:
-        usages: List[Usage] = []
+    def scan(self, path: Path, text: str) -> list[Usage]:
+        usages: list[Usage] = []
         for match in _RE_CALL.finditer(text):
             func, name = match.group(1), match.group(2)
-            notes = ()
+            notes: tuple[str, ...] = ()
             required = False
             if func == "LookupEnv":
                 notes = ("presence-checked",)

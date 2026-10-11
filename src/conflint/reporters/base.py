@@ -8,7 +8,7 @@ every format can be unit-tested against a fixed string.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional, TextIO
+from typing import TextIO
 
 from conflint.config import Settings
 from conflint.models import Report

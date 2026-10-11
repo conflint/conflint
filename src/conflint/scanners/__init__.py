@@ -13,9 +13,9 @@ from conflint.scanners.python import PythonScanner
 from conflint.scanners.ruby import RubyScanner
 
 __all__ = [
-    "Scanner",
-    "PythonScanner",
-    "JavaScriptScanner",
     "GoScanner",
+    "JavaScriptScanner",
+    "PythonScanner",
     "RubyScanner",
+    "Scanner",
 ]

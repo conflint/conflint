@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List
-
 from conflint.config import Settings
 from conflint.models import Config, Finding, Severity
 from conflint.rules.base import Rule
@@ -19,8 +17,8 @@ class SecretLeakRule(Rule):
     description = "A high-entropy secret value is committed in a real config source."
     fixable = False
 
-    def check(self, config: Config, settings: Settings) -> List[Finding]:
-        findings: List[Finding] = []
+    def check(self, config: Config, settings: Settings) -> list[Finding]:
+        findings: list[Finding] = []
         for entry in config.entries:
             if entry.is_example or entry.is_empty:
                 continue

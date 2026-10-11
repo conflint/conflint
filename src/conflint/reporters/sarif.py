@@ -8,11 +8,12 @@ consistent findings across runs.
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List
+from typing import Any
 
 from conflint.config import Settings
 from conflint.models import Finding, Report, Severity
 from conflint.reporters.base import Reporter
+from conflint.rules import Rule
 from conflint.version import __version__
 
 __all__ = ["SarifReporter"]
@@ -31,7 +32,7 @@ class SarifReporter(Reporter):
     description = "SARIF 2.1.0 for CI security dashboards."
 
     def render(self, report: Report, settings: Settings) -> str:
-        run: Dict[str, Any] = {
+        run: dict[str, Any] = {
             "tool": {
                 "driver": {
                     "name": "conflint",
@@ -53,17 +54,15 @@ class SarifReporter(Reporter):
         return json.dumps(payload, indent=2) + "\n"
 
     @staticmethod
-    def _rule_metadata() -> List[Dict[str, Any]]:
-        rules: Dict[str, Dict[str, Any]] = {}
+    def _rule_metadata() -> list[dict[str, Any]]:
+        rules: dict[str, dict[str, Any]] = {}
         for rule in _collect_rules():
             default = rule.severity.value
             rules[rule.id] = {
                 "id": rule.id,
                 "name": rule.name,
                 "shortDescription": {"text": rule.description},
-                "help": {
-                    "text": f"{rule.description} See the rule documentation for details."
-                },
+                "help": {"text": f"{rule.description} See the rule documentation for details."},
                 "security-severity": "7.0"
                 if default == "error"
                 else ("5.0" if default == "warning" else "2.0"),
@@ -71,8 +70,8 @@ class SarifReporter(Reporter):
             }
         return list(rules.values())
 
-    def _result(self, finding: Finding, settings: Settings) -> Dict[str, Any]:
-        result: Dict[str, Any] = {
+    def _result(self, finding: Finding, settings: Settings) -> dict[str, Any]:
+        result: dict[str, Any] = {
             "ruleId": finding.rule_id,
             "level": _LEVEL[finding.severity],
             "message": {"text": finding.message},
@@ -82,7 +81,7 @@ class SarifReporter(Reporter):
         if finding.location is not None:
             loc = finding.location
             uri = str(loc.relative_to(settings.root) if settings.root else loc.path)
-            region: Dict[str, Any] = {}
+            region: dict[str, Any] = {}
             if loc.line:
                 region["startLine"] = loc.line
             if loc.column:
@@ -98,7 +97,7 @@ class SarifReporter(Reporter):
         return result
 
 
-def _collect_rules():
+def _collect_rules() -> list[Rule]:
     from conflint.registry import get_rules
 
     return list(get_rules().values())

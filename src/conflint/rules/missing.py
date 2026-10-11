@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import List
-
 from conflint.config import Settings
 from conflint.models import Config, Finding, Severity
 from conflint.rules.base import Rule
@@ -18,9 +16,9 @@ class MissingRule(Rule):
     description = "A configuration value is read by code but defined nowhere."
     fixable = False
 
-    def check(self, config: Config, settings: Settings) -> List[Finding]:
+    def check(self, config: Config, settings: Settings) -> list[Finding]:
         defined = {entry.name for entry in config.entries}
-        findings: List[Finding] = []
+        findings: list[Finding] = []
         for name, usages in config.usages_by_name().items():
             if settings.is_name_ignored(name) or name in defined:
                 continue

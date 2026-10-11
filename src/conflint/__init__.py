@@ -20,7 +20,6 @@ from conflint.models import (
 from conflint.version import __version__
 
 __all__ = [
-    "__version__",
     "Config",
     "Entry",
     "Finding",
@@ -29,4 +28,5 @@ __all__ = [
     "Report",
     "Severity",
     "Usage",
+    "__version__",
 ]

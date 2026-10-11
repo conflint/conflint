@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any, Dict
+from typing import Any
 
 from conflint.config import Settings
 from conflint.models import Report
@@ -20,7 +20,7 @@ class JsonReporter(Reporter):
     description = "Machine-readable JSON report."
 
     def render(self, report: Report, settings: Settings) -> str:
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "schema_version": _SCHEMA_VERSION,
             "conflint_version": __version__,
             "root": str(settings.root),
@@ -32,8 +32,6 @@ class JsonReporter(Reporter):
                 "counts": report.count_by_severity(),
             },
             "sources": [summary.as_dict() for summary in report.sources],
-            "findings": [
-                finding.as_dict(settings.root) for finding in report.sorted_findings()
-            ],
+            "findings": [finding.as_dict(settings.root) for finding in report.sorted_findings()],
         }
         return json.dumps(payload, indent=2, sort_keys=False) + "\n"

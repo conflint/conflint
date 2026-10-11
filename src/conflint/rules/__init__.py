@@ -31,14 +31,14 @@ from conflint.rules.unused import UnusedRule
 from conflint.rules.weak import WeakSecretRule
 
 __all__ = [
-    "Rule",
-    "MissingRule",
-    "UnusedRule",
-    "TypoRule",
-    "SecretLeakRule",
     "DriftRule",
-    "EmptyValueRule",
     "DuplicateRule",
-    "WeakSecretRule",
+    "EmptyValueRule",
+    "MissingRule",
+    "Rule",
+    "SecretLeakRule",
+    "TypoRule",
     "UndocumentedRule",
+    "UnusedRule",
+    "WeakSecretRule",
 ]
