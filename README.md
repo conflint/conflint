@@ -8,11 +8,12 @@ it against `.env`, CI, Docker, Kubernetes and Terraform — **before it breaks p
 
 [![PyPI version](https://img.shields.io/pypi/v/conflint?color=7c3aed&logo=pypi&logoColor=white&cacheSeconds=3600)](https://pypi.org/project/conflint)
 [![Python versions](https://img.shields.io/pypi/pyversions/conflint)](https://pypi.org/project/conflint)
+[![Docs](https://readthedocs.org/projects/conflint/badge/?version=latest)](https://conflint.readthedocs.io/en/latest/)
 [![CI](https://github.com/conflint/conflint/actions/workflows/ci.yml/badge.svg)](https://github.com/conflint/conflint/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
-`pip install conflint` · `confl check` · [`conflint` on PyPI](https://pypi.org/project/conflint)
+`pip install conflint` · `confl check` · [`conflint` on PyPI](https://pypi.org/project/conflint) · [Docs](https://conflint.readthedocs.io)
 
 <img src="https://raw.githubusercontent.com/conflint/conflint/main/docs/assets/demo.gif" alt="confl check catching a committed secret, a missing variable and a typo" width="820">
 
