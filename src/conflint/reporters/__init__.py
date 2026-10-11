@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Union
+
 from conflint.exceptions import ConfigError
 from conflint.reporters.base import Reporter
 from conflint.reporters.github import GithubReporter
@@ -20,13 +22,15 @@ __all__ = [
     "create_reporter",
 ]
 
-_ReporterClass = (
-    type[TextReporter]
-    | type[JsonReporter]
-    | type[SarifReporter]
-    | type[GithubReporter]
-    | type[JunitReporter]
-)
+# ``typing.Union`` (not ``type[A] | type[B]``) because the alias is evaluated at
+# import time and ``|`` on types requires Python 3.10.
+_ReporterClass = Union[
+    type[TextReporter],
+    type[JsonReporter],
+    type[SarifReporter],
+    type[GithubReporter],
+    type[JunitReporter],
+]
 
 _REPORTER_CLASSES: dict[str, _ReporterClass] = {
     "text": TextReporter,
