@@ -1,0 +1,141 @@
+[build-system]
+requires = ["hatchling>=1.21", "hatch-vcs>=0.4"]
+build-backend = "hatchling.build"
+
+[project]
+name = "conflint"
+dynamic = ["version"]
+description = "Code-aware config linter. Find every env var, config key and secret your app needs - and the drift across .env, CI, Docker, Kubernetes and Terraform before it breaks prod."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "conflint contributors" }]
+keywords = ["env", "dotenv", "config", "linter", "secrets", "drift", "ci", "kubernetes"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: System :: Systems Administration",
+    "Typing :: Typed",
+]
+dependencies = [
+    "click>=8.1",
+    "rich>=12.0",
+    "pathspec>=0.11",
+    "pyyaml>=6.0",
+    "tomli>=2.0; python_version < '3.11'",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "mypy>=1.8",
+    "ruff>=0.4",
+    "build>=1.2",
+    "twine>=5.0",
+]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=0.24",
+]
+
+[project.urls]
+Homepage = "https://github.com/confl/conflint"
+Documentation = "https://conflint.readthedocs.io"
+Repository = "https://github.com/confl/conflint"
+Issues = "https://github.com/confl/conflint/issues"
+Changelog = "https://github.com/confl/conflint/blob/main/CHANGELOG.md"
+
+[project.scripts]
+confl = "conflint.cli:main"
+
+[project.entry-points."conflint.scanners"]
+python = "conflint.scanners.python:PythonScanner"
+javascript = "conflint.scanners.javascript:JavaScriptScanner"
+go = "conflint.scanners.go:GoScanner"
+ruby = "conflint.scanners.ruby:RubyScanner"
+
+[project.entry-points."conflint.sources"]
+dotenv = "conflint.sources.dotenv:DotenvSource"
+docker_compose = "conflint.sources.docker_compose:DockerComposeSource"
+github_actions = "conflint.sources.github_actions:GitHubActionsSource"
+kubernetes = "conflint.sources.kubernetes:KubernetesSource"
+terraform = "conflint.sources.terraform:TerraformSource"
+
+[project.entry-points."conflint.rules"]
+CL001 = "conflint.rules.missing:MissingRule"
+CL002 = "conflint.rules.unused:UnusedRule"
+CL003 = "conflint.rules.typo:TypoRule"
+CL004 = "conflint.rules.secrets:SecretLeakRule"
+CL005 = "conflint.rules.drift:DriftRule"
+CL006 = "conflint.rules.empty:EmptyValueRule"
+CL007 = "conflint.rules.duplicate:DuplicateRule"
+CL008 = "conflint.rules.weak:WeakSecretRule"
+CL009 = "conflint.rules.undocumented:UndocumentedRule"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/conflint/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/conflint"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/docs",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+packages = ["conflint"]
+mypy_path = "src"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+source = ["conflint"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]

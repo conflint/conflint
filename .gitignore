@@ -1,0 +1,52 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+dist/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+wheels/
+.installed.cfg
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.coverage.xml
+junit.xml
+report.xml
+
+# Type checkers / linters / formatters
+.mypy_cache/
+.dmypy.json
+.ruff_cache/
+.pytype/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Editors / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+*.sublime-workspace
+
+# mkdocs
+site/
+
+# conflint self-output
+.conflint-cache/
