@@ -14,6 +14,7 @@ ecosystem.  Unknown keys are rejected loudly so typos never pass silently.
 
 from __future__ import annotations
 
+import importlib
 import sys
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -23,10 +24,9 @@ from typing import Any, cast
 from conflint.exceptions import ConfigError
 from conflint.models import Severity
 
-if sys.version_info >= (3, 11):
-    import tomllib as _toml  # type: ignore[import-not-found]
-else:  # pragma: no cover - exercised on 3.9/3.10
-    import tomli as _toml
+# Python 3.11 renamed ``tomli`` to ``tomllib``; importing via importlib keeps
+# mypy happy regardless of which one is installed in the current environment.
+_toml: Any = importlib.import_module("tomllib" if sys.version_info >= (3, 11) else "tomli")
 
 __all__ = ["DEFAULT_EXCLUDES", "DEFAULT_INCLUDES", "Settings", "load_settings"]
 

@@ -127,7 +127,6 @@ minversion = "7.0"
 addopts = "-ra -q --strict-markers"
 testpaths = ["tests"]
 filterwarnings = ["error"]
-asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 source = ["conflint"]
