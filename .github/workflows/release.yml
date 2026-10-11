@@ -10,8 +10,8 @@ permissions:
   id-token: write
 
 jobs:
-  build-and-publish:
-    name: Build & publish to PyPI
+  build:
+    name: Build sdist + wheel
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,11 +21,38 @@ jobs:
         with:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip build
-      - name: Build sdist + wheel
-        run: python -m build
+      - run: python -m build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      # Requires either trusted publishing (PyPI project "conflint" -> this
+      # repo's tag workflow) or a PYPI_API_TOKEN secret.
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist
+
+  release:
+    name: Create GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          files: dist/*
