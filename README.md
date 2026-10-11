@@ -6,7 +6,15 @@
 Find every env var, config key and secret your app *actually* reads, then reconcile
 it against `.env`, CI, Docker, Kubernetes and Terraform — **before it breaks prod**.
 
+[![PyPI version](https://img.shields.io/pypi/v/conflint?color=7c3aed)](https://pypi.org/project/conflint)
+[![Python versions](https://img.shields.io/pypi/pyversions/conflint)](https://pypi.org/project/conflint)
+[![CI](https://github.com/conflint/conflint/actions/workflows/ci.yml/badge.svg)](https://github.com/conflint/conflint/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+
 `pip install conflint` · `confl check` · [`conflint` on PyPI](https://pypi.org/project/conflint)
+
+<img src="https://raw.githubusercontent.com/conflint/conflint/main/docs/assets/demo.gif" alt="confl check catching a committed secret, a missing variable and a typo" width="820">
 
 </div>
 
@@ -128,7 +136,7 @@ Run `confl init` to write a commented template.
 
 ```yaml
 - name: Lint configuration
-  uses: conflint/conflint@v1
+  uses: conflint/conflint@v0.1.2
   with:
     reporter: github          # inline PR annotations
     fail-level: error

@@ -1,0 +1,58 @@
+name: "conflint"
+description: "Lint configuration drift across code, .env, CI, Docker, Kubernetes and Terraform."
+author: "conflint contributors"
+
+branding:
+  icon: "check-circle"
+  color: "purple"
+
+inputs:
+  reporter:
+    description: "Reporter to use: text, json, sarif, github or junit."
+    required: false
+    default: "github"
+  fail-level:
+    description: "Minimum severity that fails the job: error, warning or info."
+    required: false
+    default: "error"
+  paths:
+    description: "Space-separated paths to check (default: the whole repository)."
+    required: false
+    default: ""
+  version:
+    description: "conflint version to install (default: the latest on PyPI)."
+    required: false
+    default: ""
+  python-version:
+    description: "Python version used to run conflint."
+    required: false
+    default: "3.x"
+  args:
+    description: "Extra arguments appended to `confl check`."
+    required: false
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v7
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install conflint
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        if [ -n "${{ inputs.version }}" ]; then
+          python -m pip install "conflint==${{ inputs.version }}"
+        else
+          python -m pip install conflint
+        fi
+
+    - name: Run confl check
+      shell: bash
+      run: |
+        paths="${{ inputs.paths }}"
+        extra="${{ inputs.args }}"
+        confl check --report "${{ inputs.reporter }}" --fail-level "${{ inputs.fail-level }}" $paths $extra
