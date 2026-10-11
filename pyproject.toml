@@ -52,11 +52,11 @@ docs = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/confl/conflint"
+Homepage = "https://github.com/conflint/conflint"
 Documentation = "https://conflint.readthedocs.io"
-Repository = "https://github.com/confl/conflint"
-Issues = "https://github.com/confl/conflint/issues"
-Changelog = "https://github.com/confl/conflint/blob/main/CHANGELOG.md"
+Repository = "https://github.com/conflint/conflint"
+Issues = "https://github.com/conflint/conflint/issues"
+Changelog = "https://github.com/conflint/conflint/blob/main/CHANGELOG.md"
 
 [project.scripts]
 confl = "conflint.cli:main"

@@ -128,7 +128,7 @@ Run `confl init` to write a commented template.
 
 ```yaml
 - name: Lint configuration
-  uses: confl/conflint@v1
+  uses: conflint/conflint@v1
   with:
     reporter: github          # inline PR annotations
     fail-level: error
@@ -146,7 +146,7 @@ or with pip directly:
 ### pre-commit
 
 ```yaml
-- repo: https://github.com/confl/conflint
+- repo: https://github.com/conflint/conflint
   rev: v0.1.0
   hooks:
     - id: conflint
@@ -166,7 +166,7 @@ confl check --json --output report.json   # write to a file
 ## Development
 
 ```bash
-git clone https://github.com/confl/conflint
+git clone https://github.com/conflint/conflint
 cd conflint
 pip install -e ".[dev]"
 pytest

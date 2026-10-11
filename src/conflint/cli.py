@@ -240,7 +240,7 @@ def init(force: bool) -> int:
         click.echo(f"confl: {target} already exists (use --force to overwrite).", err=True)
         raise SystemExit(ExitCode.USAGE)
     template = """\
-# conflint configuration - https://github.com/confl/conflint
+# conflint configuration - https://github.com/conflint/conflint
 # Keys are top-level here (in pyproject.toml, nest them under [tool.conflint]).
 
 # fail-level = "error"              # error | warning | info

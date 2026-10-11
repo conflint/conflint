@@ -24,7 +24,7 @@ _LEVEL = {
     Severity.INFO: "note",
 }
 
-_URI = "https://github.com/confl/conflint"
+_URI = "https://github.com/conflint/conflint"
 
 
 class SarifReporter(Reporter):
