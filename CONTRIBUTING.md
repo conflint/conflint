@@ -87,10 +87,39 @@ python -m build
 python -m twine check dist/*
 ```
 
+## Releasing
+
+Releases are fully automated by `.github/workflows/release.yml`: pushing a
+`v*` tag builds the sdist + wheel, publishes to PyPI, and creates the GitHub
+release with both artifacts attached.
+
+Publishing uses [PyPI trusted publishing](https://docs.pypi.org/trusted-publishers/)
+(OIDC, no long-lived token). The publisher must be registered on PyPI with:
+
+| Field | Value |
+| --- | --- |
+| PyPI Project Name | `conflint` |
+| Owner | `conflint` |
+| Repository name | `conflint` |
+| Workflow name | `release.yml` |
+| Environment name | *(blank — the job declares no environment)* |
+
+To cut a release:
+
+```console
+git checkout main
+git pull
+git tag -a vX.Y.Z -m "conflint X.Y.Z"
+git push origin vX.Y.Z
+```
+
+If the PyPI trusted publisher is not configured yet, the `publish-pypi` job
+will fail while the build and GitHub release jobs still succeed.
+
 ## Pull requests
 
 - Keep changes focused; separate commits for separate concerns.
-- Update `CHANGELOG.md` (Unreleased section) for user-visible changes.
+- Update `CHANGELOG.md` for user-visible changes.
 - Make sure the full check suite passes locally before pushing.
 
 ## Reporting issues
